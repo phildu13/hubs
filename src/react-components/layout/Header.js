@@ -6,11 +6,10 @@ import { faCog } from "@fortawesome/free-solid-svg-icons/faCog";
 import maskEmail from "../../utils/mask-email";
 import styles from "./Header.scss";
 import { Container } from "./Container";
-import { SocialBar } from "../home/SocialBar";
-import { SignInButton } from "../home/SignInButton";
-import { AppLogo } from "../misc/AppLogo";
 
 export function Header({
+  appName,
+  appLogo,
   showCloud,
   enableSpoke,
   editorName,
@@ -22,52 +21,72 @@ export function Header({
   isAdmin,
   isSignedIn,
   email,
-  onSignOut,
-  isHmc
+  onSignOut
 }) {
   return (
     <header>
-      <Container as="div" className={styles.container}>
+      <div className="row non-mobile" style={{padding: 20}}>
+        <div className="col-md-1 menu-text">
+          MARKETPLACE
+          <p className="menu-sub-text">Coming soon</p>
+        </div>
+        <div className="col-md-1 menu-text">
+          TOKEN
+          <p className="menu-sub-text">Coming soon</p>
+        </div>
+        <div className="col-md-1 menu-text" >
+          STAKE
+          <p className="menu-sub-text">Coming soon</p>
+        </div>
+        <div className="col-md-1 menu-text">
+          LEARN
+          <p className="menu-sub-text">Coming soon</p>
+        </div>
+        <div className="col-md-2 menu-text "onClick={()=> {window.open("https://meta-xyz.readyplayer.me", "_blank");}}>
+          <p className="menu-avatar" style={{position: 'relative', top: -10}}>CREATE YOUR AVATAR</p>
+        </div>
+        <div className="col-md-2 offset-md-4 menu-text"  style={{cursor: 'pointer'}} onClick={()=> {window.open("https://twitter.com/XYZmarketplace", "_blank");}}>
+          Lets stay connected <img  style={{marginLeft: 10, width: 12+'%'}} src="https://cadgl.net/meta-xyz-images/xyz-twitter.png" />
+        </div>
+      </div>
+      <div class="topnav" style={{display: 'none'}}>
+            <div id="myLinks">
+              <a href="#">MARKETPLACE
+                <p className="menu-sub-text">Coming soon</p>
+              </a>
+              <a href="#">TOKEN
+                <p className="menu-sub-text">Coming soon</p>
+              </a>
+              <a href="#">STAKE
+                <p className="menu-sub-text">Coming soon</p>
+              </a>
+              <a href="#">LEARN
+                <p className="menu-sub-text">Coming soon</p>
+              </a>
+              <a href="https://meta-xyz.readyplayer.me" target="_blank">CREATE YOUR AVATAR
+              </a>
+              <a target="_blank" href="https://twitter.com/XYZmarketplace">Lets stay connected <img  style={{marginLeft: 10, width: 12+'%', display: 'inline-block'}} src="https://cadgl.net/meta-xyz-images/xyz-twitter.png" />
+              </a>
+            </div>
+            <a href="javascript:void(0);" className="icon" onClick={()=>{
+              var x = document.getElementById("myLinks");
+              if (x.style.display === "block") {
+                x.style.display = "none";
+              } else {
+                x.style.display = "block";
+              }
+            }}>
+              <i class="fa fa-bars"></i>
+            </a>
+      </div>
+      {/* <Container as="div" className={styles.container}>
         <nav>
           <ul>
             <li>
               <a href="/" className={styles.homeLink}>
-                {/*
-                This forceConfigurableLogo prop is a bit of a hack, since we want the home page on HMC to use our 
-                configured logo, which is left-aligned, as opposed to the logo that we typically used for HMC, 
-                which is center-aligned.
-                */}
-                <AppLogo forceConfigurableLogo />
+                <img alt={appName} src={appLogo} />
               </a>
             </li>
-            {enableSpoke && (
-              <li>
-                <a href="/spoke">
-                  {isHmc ? <FormattedMessage id="header.spoke" defaultMessage="Spoke" /> : editorName}
-                </a>
-              </li>
-            )}
-            {showDocsLink && (
-              <li>
-                <a href={docsUrl}>
-                  <FormattedMessage id="header.docs" defaultMessage="Guides" />
-                </a>
-              </li>
-            )}
-            {showSourceLink && (
-              <li>
-                <a href="https://github.com/mozilla/hubs">
-                  <FormattedMessage id="header.source" defaultMessage="Developers" />
-                </a>
-              </li>
-            )}
-            {showCommunityLink && (
-              <li>
-                <a href={communityUrl}>
-                  <FormattedMessage id="header.community" defaultMessage="Community" />
-                </a>
-              </li>
-            )}
             {showCloud && (
               <li>
                 <a href="/cloud">
@@ -75,10 +94,29 @@ export function Header({
                 </a>
               </li>
             )}
-            {isHmc && (
+            {enableSpoke && (
               <li>
-                <a href="/labs">
-                  <FormattedMessage id="header.labs" defaultMessage="Labs" />
+                <a href="/spoke">{editorName}</a>
+              </li>
+            )}
+            {showDocsLink && (
+              <li>
+                <a href={docsUrl}>
+                  <FormattedMessage id="header.docs" defaultMessage="Docs" />
+                </a>
+              </li>
+            )}
+            {showSourceLink && (
+              <li>
+                <a href="https://github.com/mozilla/hubs">
+                  <FormattedMessage id="header.source" defaultMessage="Source" />
+                </a>
+              </li>
+            )}
+            {showCommunityLink && (
+              <li>
+                <a href={communityUrl}>
+                  <FormattedMessage id="header.community" defaultMessage="Community" />
                 </a>
               </li>
             )}
@@ -104,22 +142,25 @@ export function Header({
                   defaultMessage="Signed in as {email}"
                   values={{ email: maskEmail(email) }}
                 />
-              </span>
+              </span>{" "}
               <a href="#" onClick={onSignOut}>
                 <FormattedMessage id="header.sign-out" defaultMessage="Sign Out" />
               </a>
             </div>
           ) : (
-            <SignInButton />
+            <a href="/signin" rel="noreferrer noopener">
+              <FormattedMessage id="header.sign-in" defaultMessage="Sign In" />
+            </a>
           )}
         </div>
-        {isHmc ? <SocialBar mobile /> : null}
-      </Container>
+      </Container> */}
     </header>
   );
 }
 
 Header.propTypes = {
+  appName: PropTypes.string,
+  appLogo: PropTypes.string,
   showCloud: PropTypes.bool,
   enableSpoke: PropTypes.bool,
   editorName: PropTypes.string,
@@ -131,6 +172,5 @@ Header.propTypes = {
   isAdmin: PropTypes.bool,
   isSignedIn: PropTypes.bool,
   email: PropTypes.string,
-  onSignOut: PropTypes.func,
-  isHmc: PropTypes.bool
+  onSignOut: PropTypes.func
 };

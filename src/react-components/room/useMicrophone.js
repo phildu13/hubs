@@ -1,76 +1,58 @@
-import { useState, useEffect, useCallback } from "react";
-import { MediaDevices, MediaDevicesEvents } from "../../utils/media-devices-utils";
+import { useState, useEffect, useRef, useCallback } from "react";
+import MovingAverage from "moving-average";
 
-export function useMicrophone(scene) {
-  const mediaDevicesManager = APP.mediaDevicesManager;
-  const [micDevices, setMicDevices] = useState({
-    value: mediaDevicesManager.selectedMicDeviceId,
-    options: mediaDevicesManager.micDevicesOptions
-  });
+export function useMicrophone(scene, updateRate = 50) {
+  const movingAvgRef = useRef();
+  const [isMuted, setIsMuted] = useState(scene.is("muted"));
+  const [volume, setVolume] = useState(0);
 
   useEffect(
     () => {
-      const onMicEnabled = () => {
-        setMicDevices({
-          value: mediaDevicesManager.selectedMicDeviceId,
-          options: mediaDevicesManager.micDevicesOptions
-        });
-      };
-      const onMicDisabled = () => {
-        setMicDevices({
-          value: mediaDevicesManager.selectedMicDeviceId,
-          options: mediaDevicesManager.micDevicesOptions
-        });
-      };
-      scene.addEventListener(MediaDevicesEvents.MIC_SHARE_ENDED, onMicDisabled);
-      scene.addEventListener(MediaDevicesEvents.MIC_SHARE_STARTED, onMicEnabled);
+      if (!movingAvgRef.current) {
+        movingAvgRef.current = MovingAverage(updateRate * 2);
+      }
 
-      const onPermissionsChanged = ({ mediaDevice }) => {
-        if (mediaDevice === MediaDevices.MICROPHONE) {
-          setMicDevices({
-            value: mediaDevicesManager.selectedMicDeviceId,
-            options: mediaDevicesManager.micDevicesOptions
-          });
+      let max = 0;
+      let timeout;
+
+      const updateMicVolume = () => {
+        const analyser = scene.systems["local-audio-analyser"];
+        max = Math.max(analyser.volume, max);
+        // We use a moving average to smooth out the visual animation or else it would twitch too fast for
+        // the css renderer to keep up.
+        movingAvgRef.current.push(Date.now(), analyser.volume);
+        const average = movingAvgRef.current.movingAverage();
+        const nextVolume = max === 0 ? 0 : average / max;
+        setVolume(prevVolume => (Math.abs(prevVolume - nextVolume) > 0.05 ? nextVolume : prevVolume));
+        timeout = setTimeout(updateMicVolume, updateRate);
+      };
+
+      updateMicVolume();
+
+      function onSceneStateChange(event) {
+        if (event.detail === "muted") {
+          setIsMuted(scene.is("muted"));
         }
-      };
-      mediaDevicesManager.on(MediaDevicesEvents.PERMISSIONS_STATUS_CHANGED, onPermissionsChanged);
+      }
 
-      const onDeviceChange = () => {
-        setMicDevices({
-          value: mediaDevicesManager.selectedMicDeviceId,
-          options: mediaDevicesManager.micDevicesOptions
-        });
-      };
-      mediaDevicesManager.on(MediaDevicesEvents.DEVICE_CHANGE, onDeviceChange);
-
-      setMicDevices({
-        value: mediaDevicesManager.selectedMicDeviceId,
-        options: mediaDevicesManager.micDevicesOptions
-      });
+      scene.addEventListener("stateadded", onSceneStateChange);
+      scene.addEventListener("stateremoved", onSceneStateChange);
 
       return () => {
-        scene.removeEventListener(MediaDevicesEvents.MIC_SHARE_ENDED, onMicDisabled);
-        scene.removeEventListener(MediaDevicesEvents.MIC_SHARE_STARTED, onMicEnabled);
-        mediaDevicesManager.off(MediaDevicesEvents.PERMISSIONS_STATUS_CHANGED, onPermissionsChanged);
-        mediaDevicesManager.off(MediaDevicesEvents.DEVICE_CHANGE, onDeviceChange);
+        clearTimeout(timeout);
+        scene.removeEventListener("stateadded", onSceneStateChange);
+        scene.removeEventListener("stateremoved", onSceneStateChange);
       };
     },
-    [setMicDevices, scene, mediaDevicesManager]
+    [setVolume, scene, updateRate]
   );
 
-  const micDeviceChanged = useCallback(
-    deviceId => {
-      setMicDevices({
-        value: mediaDevicesManager.selectedMicDeviceId,
-        options: mediaDevicesManager.micDevicesOptions
-      });
-      mediaDevicesManager.startMicShare({ deviceId });
+  const toggleMute = useCallback(
+    () => {
+      scene.emit("action_mute");
     },
-    [mediaDevicesManager]
+    [scene]
   );
 
-  return {
-    micDeviceChanged,
-    micDevices
-  };
+  return { isMuted, volume, toggleMute };
 }

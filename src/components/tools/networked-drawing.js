@@ -51,7 +51,7 @@ AFRAME.registerComponent("networked-drawing", {
     this.networkBufferInitialized = false;
 
     const options = {
-      vertexColors: true
+      vertexColors: THREE.VertexColors
     };
 
     this.color = new THREE.Color();
@@ -60,7 +60,7 @@ AFRAME.registerComponent("networked-drawing", {
 
     let material = new THREE.MeshStandardMaterial(options);
 
-    const quality = window.APP.store.state.preferences.materialQualitySetting;
+    const quality = window.APP.store.materialQualitySetting;
     material = convertStandardMaterial(material, quality);
 
     this.sharedBufferGeometryManager = new SharedBufferGeometryManager();
@@ -89,6 +89,11 @@ AFRAME.registerComponent("networked-drawing", {
     this.drawing = this.sharedBuffer.drawing;
 
     this.el.setObject3D("mesh", this.drawing);
+
+    const environmentMapComponent = this.el.sceneEl.components["environment-map"];
+    if (environmentMapComponent) {
+      environmentMapComponent.applyEnvironmentMap(this.drawing);
+    }
 
     this.prevIdx = Object.assign({}, this.sharedBuffer.idx);
     this.idx = Object.assign({}, this.sharedBuffer.idx);
@@ -203,9 +208,8 @@ AFRAME.registerComponent("networked-drawing", {
       }
     };
 
-    // TODO: Proper error handling
-    const glb = await new Promise((resolve, reject) => {
-      exporter.parse(mesh, resolve, reject, {
+    const glb = await new Promise(resolve => {
+      exporter.parse(mesh, resolve, {
         binary: true,
         includeCustomExtensions: true
       });
@@ -765,7 +769,7 @@ AFRAME.registerComponent("deserialize-drawing-button", {
         addMeshScaleAnimation(drawingManager.drawing.el.object3DMap.mesh, { x: 0.001, y: 0.001, z: 0.001 });
 
         if (this.targetEl.components.pinnable && this.targetEl.components.pinnable.data.pinned) {
-          window.APP.pinningHelper.setPinned(this.targetEl, false);
+          this.targetEl.setAttribute("pinnable", "pinned", false);
         }
         this.targetEl.parentEl.removeChild(this.targetEl);
         this.el.sceneEl.systems["hubs-systems"].soundEffectsSystem.playSoundOneShot(SOUND_PEN_START_DRAW);

@@ -2,24 +2,23 @@ import { objectTypeForOriginAndContentType } from "../object-types";
 import { getReticulumFetchUrl, getDirectReticulumFetchUrl } from "./phoenix-utils";
 import { ObjectContentOrigins } from "../object-types";
 import mediaHighlightFrag from "./media-highlight-frag.glsl";
-import { updateMaterials } from "./material-utils";
+import { mapMaterials } from "./material-utils";
 import HubsTextureLoader from "../loaders/HubsTextureLoader";
 import { validMaterials } from "../components/hoverable-visuals";
 import { proxiedUrlFor, guessContentType } from "../utils/media-url-utils";
-import { isIOS as detectIOS } from "./is-mobile";
 import Linkify from "linkify-it";
 import tlds from "tlds";
 
 import anime from "animejs";
 
 export const MediaType = {
-  MODEL: 1 << 0,
-  IMAGE: 1 << 1,
-  VIDEO: 1 << 2,
-  PDF: 1 << 3
+  ALL: "all",
+  ALL_2D: "all-2d",
+  MODEL: "model",
+  IMAGE: "image",
+  VIDEO: "video",
+  PDF: "pdf"
 };
-MediaType.ALL = MediaType.MODEL | MediaType.IMAGE | MediaType.VIDEO | MediaType.PDF;
-MediaType.ALL_2D = MediaType.IMAGE | MediaType.VIDEO | MediaType.PDF;
 
 const linkify = Linkify();
 linkify.tlds(tlds);
@@ -157,9 +156,8 @@ export const addMedia = (
 
   const entity = document.createElement("a-entity");
 
-  const nid = NAF.utils.createNetworkId();
   if (networked) {
-    entity.setAttribute("networked", { template: template, networkId: nid });
+    entity.setAttribute("networked", { template: template });
   } else {
     const templateBody = document
       .importNode(document.body.querySelector(template).content, true)
@@ -262,15 +260,16 @@ export const cloneMedia = (sourceEl, template, src = null, networked = true, lin
 };
 
 export function injectCustomShaderChunks(obj) {
+  const vertexRegex = /\bskinning_vertex\b/;
+  const fragRegex = /\bgl_FragColor\b/;
+
   const shaderUniforms = [];
+  const batchManagerSystem = AFRAME.scenes[0].systems["hubs-systems"].batchManagerSystem;
 
   obj.traverse(object => {
-    if (!object.material || object.isTroikaText) return;
+    if (!object.material) return;
 
-    // TODO this does not really belong here
-    object.reflectionProbeMode = "dynamic";
-
-    updateMaterials(object, material => {
+    object.material = mapMaterials(object, material => {
       if (material.hubs_InjectedCustomShaderChunks) return material;
       if (!validMaterials.includes(material.type)) {
         return material;
@@ -281,17 +280,21 @@ export function injectCustomShaderChunks(obj) {
       // hover/toggle state, so for now just skip these while we figure out a more correct
       // solution.
       if (
-        object.el &&
-        (object.el.classList.contains("ui") ||
-          object.el.classList.contains("hud") ||
-          object.el.getAttribute("text-button"))
+        object.el.classList.contains("ui") ||
+        object.el.classList.contains("hud") ||
+        object.el.getAttribute("text-button")
       )
         return material;
 
+      // Used when the object is batched
+      if (batchManagerSystem.batchingEnabled) {
+        batchManagerSystem.meshToEl.set(object, obj.el);
+      }
+
       const newMaterial = material.clone();
-      newMaterial.onBeforeRender = material.onBeforeRender;
+      // This will not run if the object is never rendered unbatched, since its unbatched shader will never be compiled
       newMaterial.onBeforeCompile = (shader, renderer) => {
-        if (shader.vertexShader.indexOf("#include <skinning_vertex>") == -1) return;
+        if (!vertexRegex.test(shader.vertexShader)) return;
 
         if (material.onBeforeCompile) {
           material.onBeforeCompile(shader, renderer);
@@ -306,40 +309,37 @@ export function injectCustomShaderChunks(obj) {
         shader.uniforms.hubs_HighlightInteractorTwo = { value: false };
         shader.uniforms.hubs_Time = { value: 0 };
 
-        shader.vertexShader =
-          [
-            "varying vec3 hubs_WorldPosition;",
-            "uniform bool hubs_IsFrozen;",
-            "uniform bool hubs_HighlightInteractorOne;",
-            "uniform bool hubs_HighlightInteractorTwo;\n"
-          ].join("\n") +
-          shader.vertexShader.replace(
-            "#include <skinning_vertex>",
-            `#include <skinning_vertex>
-             if (hubs_HighlightInteractorOne || hubs_HighlightInteractorTwo || hubs_IsFrozen) {
-              vec4 wt = modelMatrix * vec4(transformed, 1);
+        const vchunk = `
+        if (hubs_HighlightInteractorOne || hubs_HighlightInteractorTwo || hubs_IsFrozen) {
+          vec4 wt = modelMatrix * vec4(transformed, 1);
 
-              // Used in the fragment shader below.
-              hubs_WorldPosition = wt.xyz;
-            }`
-          );
+          // Used in the fragment shader below.
+          hubs_WorldPosition = wt.xyz;
+        }
+        `;
 
-        shader.fragmentShader =
-          [
-            "varying vec3 hubs_WorldPosition;",
-            "uniform bool hubs_IsFrozen;",
-            "uniform bool hubs_EnableSweepingEffect;",
-            "uniform vec2 hubs_SweepParams;",
-            "uniform bool hubs_HighlightInteractorOne;",
-            "uniform vec3 hubs_InteractorOnePos;",
-            "uniform bool hubs_HighlightInteractorTwo;",
-            "uniform vec3 hubs_InteractorTwoPos;",
-            "uniform float hubs_Time;\n"
-          ].join("\n") +
-          shader.fragmentShader.replace(
-            "#include <output_fragment>",
-            "#include <output_fragment>\n" + mediaHighlightFrag
-          );
+        const vlines = shader.vertexShader.split("\n");
+        const vindex = vlines.findIndex(line => vertexRegex.test(line));
+        vlines.splice(vindex + 1, 0, vchunk);
+        vlines.unshift("varying vec3 hubs_WorldPosition;");
+        vlines.unshift("uniform bool hubs_IsFrozen;");
+        vlines.unshift("uniform bool hubs_HighlightInteractorOne;");
+        vlines.unshift("uniform bool hubs_HighlightInteractorTwo;");
+        shader.vertexShader = vlines.join("\n");
+
+        const flines = shader.fragmentShader.split("\n");
+        const findex = flines.findIndex(line => fragRegex.test(line));
+        flines.splice(findex + 1, 0, mediaHighlightFrag);
+        flines.unshift("varying vec3 hubs_WorldPosition;");
+        flines.unshift("uniform bool hubs_IsFrozen;");
+        flines.unshift("uniform bool hubs_EnableSweepingEffect;");
+        flines.unshift("uniform vec2 hubs_SweepParams;");
+        flines.unshift("uniform bool hubs_HighlightInteractorOne;");
+        flines.unshift("uniform vec3 hubs_InteractorOnePos;");
+        flines.unshift("uniform bool hubs_HighlightInteractorTwo;");
+        flines.unshift("uniform vec3 hubs_InteractorTwoPos;");
+        flines.unshift("uniform float hubs_Time;");
+        shader.fragmentShader = flines.join("\n");
 
         shaderUniforms.push(shader.uniforms);
       };
@@ -440,8 +440,10 @@ export async function createImageTexture(url, filter) {
 
     texture = new THREE.CanvasTexture(canvas);
   } else {
+    texture = new THREE.Texture();
+
     try {
-      texture = await textureLoader.loadAsync(url);
+      await textureLoader.loadTextureAsync(texture, url);
     } catch (e) {
       throw new Error(`'${url}' could not be fetched (Error code: ${e.status}; Response: ${e.statusText})`);
     }
@@ -453,7 +455,7 @@ export async function createImageTexture(url, filter) {
   return texture;
 }
 
-const isIOS = detectIOS();
+const isIOS = AFRAME.utils.device.isIOS();
 
 /**
  * Create video element to be used as a texture.
@@ -472,8 +474,7 @@ export function createVideoOrAudioEl(type) {
   el.muted = isIOS;
   el.preload = "auto";
   el.crossOrigin = "anonymous";
-  // Audio should default to zero or it be heard before it is positioning and adjusted
-  el.volume = 0;
+
   return el;
 }
 
@@ -543,25 +544,5 @@ export function closeExistingMediaMirror() {
         res();
       });
     });
-  }
-}
-
-export function hasAudioTracks(el) {
-  if (!el) return false;
-
-  // `audioTracks` is the "correct" way to check this but is not implemented by most browsers
-  // The rest of the checks are a bit of a race condition, but when loading videos we wait for
-  // the first frame to load, so audio should exist by then. We special case audio-only by checkin
-  // for a 0 size video. Not great...
-  if (el.audioTracks !== undefined) {
-    return el.audioTracks.length > 0;
-  } else if (el.videoWidth === 0 && el.videoHeight === 0) {
-    return true;
-  } else if (el.mozHasAudio !== undefined) {
-    return el.mozHasAudio;
-  } else if (el.webkitAudioDecodedByteCount !== undefined) {
-    return el.webkitAudioDecodedByteCount > 0;
-  } else {
-    return false;
   }
 }

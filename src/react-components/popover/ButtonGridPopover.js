@@ -37,7 +37,7 @@ ButtonGridPopover.propTypes = {
       id: PropTypes.string.isRequired,
       icon: PropTypes.elementType.isRequired,
       color: PropTypes.string,
-      label: PropTypes.element.isRequired,
+      name: PropTypes.string.isRequired,
       onSelect: PropTypes.func
     })
   ).isRequired,

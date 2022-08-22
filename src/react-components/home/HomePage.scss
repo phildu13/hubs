@@ -3,7 +3,7 @@
 :local(.home-page) {
   flex: 1;
   background-size: cover;
-  padding: 0;
+  padding: 1.5em;
   flex-direction: column;
   align-items: center;
 
@@ -21,8 +21,8 @@
   display: flex;
   justify-content: center;
   padding: 20px;
-  width: 150px;
-  
+  width: 250px;
+
   img {
     width: 100%;
     align-self: flex-start;
@@ -31,20 +31,6 @@
   @media (min-width: theme.$breakpoint-lg) {
     display: none;
   }
-}
-
-:local(.sign-in-container) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  @media(min-width: theme.$breakpoint-lg) {
-    display: none;
-  }
-}
-
-:local(.mobile-sign-out) {
-  padding: 0.5rem;
 }
 
 :local(.hero) {
@@ -59,11 +45,8 @@
 }
 
 :local(.hero-image-container) {
-
   img {
-    @media (min-width: theme.$breakpoint-lg) {
-      border-radius: 16px;
-    }
+    border-radius: 16px;
   }
 }
 
@@ -96,7 +79,7 @@
   font-size: theme.$font-size-lg;
   font-weight: theme.$font-weight-medium;
   text-align: center;
-  margin: 0 24px 20px 24px;
+  margin: 0 48px 20px 48px;
   line-height: 1.25;
 
   @media (min-width: theme.$breakpoint-lg) {
@@ -193,3 +176,134 @@
     align-items: center;
   }
 }
+
+
+
+
+/* Custom */
+
+  #home-root{
+    overflow-x: hidden;
+    // overflow-y: hidden;
+    main{
+      padding: 0 !important;
+      background: url('https://cadgl.net/meta-xyz-images/background-xyz.png');
+      background-repeat: no-repeat;
+      h2{
+        font-size: 30pt;
+      }
+      .home-buttons{
+        border-color: #df1660!important;
+        background-color: #df1660!important;
+        color: #fff;
+        border-radius: 8px;
+        padding: 7px 60px 7px 60px;
+        font-size: 23px;
+        min-width: 390px;
+        .menu-sub-text{
+          color: rgb(255 255 255 / 45%);
+        }
+      }
+      .logo-div{
+        width: 12%;
+      }
+    }
+  
+    .outline-text{
+      text-shadow:
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
+      1px 1px 0 #000; 
+    }
+  }
+
+/* Mobile Portrait */
+@media only screen and (min-device-width: 320px) and (max-device-width: 480px),
+  (min-device-width: 320px) and (max-device-width: 480px) and (min-device-width: 360px) 
+  and (max-device-width: 640px) and (-webkit-min-device-pixel-ratio: 2) and (min-device-width: 375px) 
+  and (max-device-width: 667px) and (-webkit-min-device-pixel-ratio: 2) and (orientation: portrait) 
+  and (min-device-width: 375px) and (max-device-width: 667px) and (-webkit-min-device-pixel-ratio: 2) 
+  {
+    #home-root{
+      overflow-x: hidden;
+      // overflow-y: hidden;
+      main{
+        padding: 0 !important;
+        background: url('https://cadgl.net/meta-xyz-images/background-mobile-xyz.png');
+        background-repeat: round;
+        h2{
+          font-size: 24pt;
+        }
+        .home-buttons{
+          border-color: #df1660!important;
+          background-color: #df1660!important;
+          color: #fff;
+          border-radius: 8px;
+          padding: 15px 60px 15px 60px;
+          font-size: 19px;
+          min-width: 330px;
+          width: 330px;
+        }
+        .logo-div{
+          width: 16%;
+        }
+      }
+    }
+  }
+
+  
+/* Mobile Landscape */
+@media only screen 
+and (min-device-width: 375px) 
+and (max-device-width: 667px) 
+and (-webkit-min-device-pixel-ratio: 2)
+and (orientation: landscape),
+(min-device-width: 414px) 
+and (max-device-width: 736px) 
+and (-webkit-min-device-pixel-ratio: 3)
+and (orientation: landscape),
+/* Iphone X */
+(min-device-width: 375px) 
+and (max-device-width: 812px) 
+and (-webkit-min-device-pixel-ratio: 3)
+and (orientation: landscape)
+{
+  #home-root{
+    overflow-x: hidden;
+    // overflow-y: hidden;
+    main{
+      background-repeat: round;
+    }
+  }
+}
+
+/* Tablet Portrait */
+@media only screen 
+  and (min-device-width: 768px) 
+  and (max-device-width: 1024px) 
+  and (orientation: portrait) 
+  and (-webkit-min-device-pixel-ratio: 1){
+    #home-root{
+      overflow-x: hidden;
+      // overflow-y: hidden;
+      main{
+        background-repeat: round;
+      }
+    }
+}
+
+
+/* Tablet landscape */
+@media only screen 
+and (min-device-width: 768px) 
+and (max-device-width: 1024px) 
+and (orientation: landscape) 
+and (-webkit-min-device-pixel-ratio: 1) {
+  #home-root{
+    main{
+      background-repeat: round;
+    }
+  }
+}
+  

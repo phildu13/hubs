@@ -1,49 +1,54 @@
 import { useState, useEffect } from "react";
 // ResizeObserver not currently supported in Firefox Android
 import ResizeObserver from "resize-observer-polyfill";
-import {
-  addOrientationChangeListener,
-  removeOrientationChangeListener,
-  getMaxResolutionWidth,
-  getMaxResolutionHeight
-} from "../../utils/screen-orientation-utils";
 
-function calculateRendererSize(canvasRect, maxResolution, isVR) {
-  if (isVR) {
-    return canvasRect;
-  }
+const DEFAULT_MAX_RESOLUTION = 1920;
 
-  // canvasRect values are CSS pixels based while
-  // maxResolution values are physical pixels based (CSS pixels * pixel ratio).
-  // Convert maxResolution values to CSS pixels based.
+// Modified from AFrame
+function getRenderResolution(canvasRect, maxResolution, isVR) {
   const pixelRatio = window.devicePixelRatio;
-  const maxWidth = maxResolution.width / pixelRatio;
-  const maxHeight = maxResolution.height / pixelRatio;
 
-  if (canvasRect.width <= maxWidth && canvasRect.height <= maxHeight) {
+  if (!maxResolution || isVR || (maxResolution.width === -1 && maxResolution.height === -1)) {
     return canvasRect;
   }
 
-  const conversionRatio = Math.min(maxWidth / canvasRect.width, maxHeight / canvasRect.height);
+  if (canvasRect.width * pixelRatio < maxResolution.width && canvasRect.height * pixelRatio < maxResolution.height) {
+    return canvasRect;
+  }
 
-  return {
-    width: Math.round(canvasRect.width * conversionRatio),
-    height: Math.round(canvasRect.height * conversionRatio)
-  };
+  const aspectRatio = canvasRect.width / canvasRect.height;
+
+  if (canvasRect.width * pixelRatio > maxResolution.width && maxResolution.width !== -1) {
+    return {
+      width: Math.round(maxResolution.width / pixelRatio),
+      height: Math.round(maxResolution.width / aspectRatio / pixelRatio)
+    };
+  }
+
+  if (canvasRect.height * pixelRatio > maxResolution.height && maxResolution.height !== -1) {
+    return {
+      height: Math.round(maxResolution.height / pixelRatio),
+      width: Math.round((maxResolution.height * aspectRatio) / pixelRatio)
+    };
+  }
+
+  return canvasRect;
 }
 
 export function useResizeViewport(viewportRef, store, scene) {
   const [maxResolution, setMaxResolution] = useState({
-    width: getMaxResolutionWidth(store),
-    height: getMaxResolutionHeight(store)
+    width: DEFAULT_MAX_RESOLUTION,
+    height: DEFAULT_MAX_RESOLUTION
   });
 
   useEffect(
     () => {
       function onStoreChanged() {
+        const { maxResolutionWidth, maxResolutionHeight } = store.state.preferences;
+
         setMaxResolution({
-          width: getMaxResolutionWidth(store),
-          height: getMaxResolutionHeight(store)
+          width: maxResolutionWidth === undefined ? DEFAULT_MAX_RESOLUTION : maxResolutionWidth,
+          height: maxResolutionHeight === undefined ? DEFAULT_MAX_RESOLUTION : maxResolutionHeight
         });
       }
 
@@ -61,8 +66,8 @@ export function useResizeViewport(viewportRef, store, scene) {
   useEffect(
     () => {
       const observer = new ResizeObserver(entries => {
-        const isPresenting = scene.renderer.xr.isPresenting;
-        const isVRPresenting = scene.renderer.xr.enabled && isPresenting;
+        const isPresenting = scene.renderer.vr.isPresenting();
+        const isVRPresenting = scene.renderer.vr.enabled && isPresenting;
 
         // Do not update renderer, if a camera or a canvas have not been injected.
         // In VR mode, three handles canvas resize based on the dimensions returned by
@@ -75,15 +80,15 @@ export function useResizeViewport(viewportRef, store, scene) {
 
         const canvasRect = entries[0].contentRect;
 
-        const rendererSize = calculateRendererSize(canvasRect, maxResolution, isVRPresenting);
+        const resolution = getRenderResolution(canvasRect, maxResolution, isVRPresenting);
 
         const canvas = scene.canvas;
         canvas.style.width = canvasRect.width + "px";
         canvas.style.height = canvasRect.height + "px";
 
-        scene.renderer.setSize(rendererSize.width, rendererSize.height, false);
+        scene.renderer.setSize(resolution.width, resolution.height, false);
 
-        scene.camera.aspect = rendererSize.width / rendererSize.height;
+        scene.camera.aspect = resolution.width / resolution.height;
         scene.camera.updateProjectionMatrix();
 
         // Resizing the canvas clears it, so render immediately after resize to prevent flicker.
@@ -99,23 +104,5 @@ export function useResizeViewport(viewportRef, store, scene) {
       };
     },
     [viewportRef, scene, maxResolution]
-  );
-
-  useEffect(
-    () => {
-      function onOrientationChange() {
-        setMaxResolution({
-          width: getMaxResolutionWidth(store),
-          height: getMaxResolutionHeight(store)
-        });
-      }
-
-      addOrientationChangeListener(onOrientationChange);
-
-      return () => {
-        removeOrientationChangeListener(onOrientationChange);
-      };
-    },
-    [store]
   );
 }

@@ -390,13 +390,13 @@ class MediaBrowserContainer extends Component {
     if (!hideSearch && urlSource !== "scenes" && urlSource !== "avatars" && urlSource !== "favorites") {
       searchDescription = (
         <>
-          {poweredByMessages[urlSource] ? intl.formatMessage(poweredByMessages[urlSource]) : ""}
+          {/* {poweredByMessages[urlSource] ? intl.formatMessage(poweredByMessages[urlSource]) : ""}
           {poweredByMessages[urlSource] && PRIVACY_POLICY_LINKS[urlSource] ? " | " : ""}
           {PRIVACY_POLICY_LINKS[urlSource] && (
             <a href={PRIVACY_POLICY_LINKS[urlSource]} target="_blank" rel="noreferrer noopener">
               <FormattedMessage id="media-browser.privacy_policy" defaultMessage="Privacy Policy" />
             </a>
-          )}
+          )} */}
         </>
       );
     } else if (urlSource === "scenes") {

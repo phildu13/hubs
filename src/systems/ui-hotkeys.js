@@ -24,11 +24,11 @@ AFRAME.registerSystem("ui-hotkeys", {
     }
 
     if (this.userinput.get(paths.actions.focusChat)) {
-      window.dispatchEvent(new CustomEvent("focus_chat", { detail: { prefix: "" } }));
+      this.focusChat();
     }
 
     if (this.userinput.get(paths.actions.focusChatCommand)) {
-      window.dispatchEvent(new CustomEvent("focus_chat", { detail: { prefix: "/" } }));
+      this.focusChat("/");
     }
 
     if (this.userinput.get(paths.actions.mediaExit)) {
@@ -61,6 +61,17 @@ AFRAME.registerSystem("ui-hotkeys", {
 
     if (this.userinput.get(paths.actions.toggleUI)) {
       this.el.emit("action_toggle_ui");
+    }
+  },
+
+  focusChat: function(prefix) {
+    const target = document.querySelector(".chat-focus-target");
+    if (!target) return;
+
+    target.focus();
+
+    if (prefix) {
+      target.value = prefix;
     }
   }
 });

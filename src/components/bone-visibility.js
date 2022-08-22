@@ -31,18 +31,6 @@ export class BoneVisibilitySystem {
       cmp.lastVisible = visible;
     }
   }
-
-  // Called only from camera-tool.tock() to update the matrices
-  // of objects and their children whose are updated in tick().
-  updateMatrices() {
-    for (let i = 0; i < components.length; i++) {
-      const cmp = components[i];
-      const obj = cmp.el.object3D;
-      if (obj.matrixNeedsUpdate) {
-        obj.updateMatrixWorld();
-      }
-    }
-  }
 }
 
 AFRAME.registerComponent("bone-visibility", {

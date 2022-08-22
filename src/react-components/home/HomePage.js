@@ -14,12 +14,8 @@ import { MediaTile } from "../room/MediaTiles";
 import { PageContainer } from "../layout/PageContainer";
 import { scaledThumbnailUrlFor } from "../../utils/media-url-utils";
 import { Column } from "../layout/Column";
+import { Button } from "../input/Button";
 import { Container } from "../layout/Container";
-import { SocialBar } from "../home/SocialBar";
-import { SignInButton } from "./SignInButton";
-import { AppLogo } from "../misc/AppLogo";
-import { isHmc } from "../../utils/isHmc";
-import maskEmail from "../../utils/mask-email";
 
 export function HomePage() {
   const auth = useContext(AuthContext);
@@ -30,7 +26,7 @@ export function HomePage() {
 
   const sortedFavoriteRooms = Array.from(favoriteRooms).sort((a, b) => b.member_count - a.member_count);
   const sortedPublicRooms = Array.from(publicRooms).sort((a, b) => b.member_count - a.member_count);
-  const wrapInBold = chunk => <b>{chunk}</b>;
+
   useEffect(() => {
     const qs = new URLSearchParams(location.search);
 
@@ -51,32 +47,97 @@ export function HomePage() {
   }, []);
 
   const canCreateRooms = !configs.feature("disable_room_creation") || auth.isAdmin;
-  const email = auth.email;
+  
   return (
     <PageContainer className={styles.homePage}>
-      <Container>
-        <div className={styles.hero}>
-          {auth.isSignedIn ? (
-            <div className={styles.signInContainer}>
-              <span>
-                <FormattedMessage
-                  id="header.signed-in-as"
-                  defaultMessage="Signed in as {email}"
-                  values={{ email: maskEmail(email) }}
-                />
-              </span>
-              <a href="#" onClick={auth.signOut} className={styles.mobileSignOut}>
-                <FormattedMessage id="header.sign-out" defaultMessage="Sign Out" />
+      <div className="row" style={{marginTop: 105}}>
+        <div className="col-md-3">
+        </div>
+        <div className="col-md-6" style={{display: 'flex', justifyContent: 'center'}}>
+          <div className="logo-div">
+            <img style={{width: 100+'%'}} src="https://cadgl.net/meta-xyz-images/logo-xyz-2.png" />
+          </div>
+        </div>
+        <div className="col-md-3">
+        </div>
+      </div>
+      <div className="row">
+        <div className="col-md-3">
+        </div>
+        <div className="col-md-6" style={{display: 'flex', justifyContent: 'center'}}>
+          <div>
+            <img src="https://cadgl.net/meta-xyz-images/Metaverse-xyz.png" />
+          </div>
+        </div>
+        <div className="col-md-3">
+        </div>
+      </div>
+      <div className="row">
+        <div className="col-md-3">
+        </div>
+        <div className="col-md-6" style={{display: 'flex', justifyContent: 'center'}}>
+          <div>
+            <h2 className="outline-text" style={{color: 'white', fontWeight: 400, textAlign: 'center'}}>CHOOSE AN AVATAR, PUT ON YOUR HEADSET AND JUMP IN</h2>
+          </div>
+        </div>
+        <div className="col-md-3">
+        </div>
+      </div>
+      <div className="row" style={{marginTop: 50}}>
+        <div className="col-md-3">
+        </div>
+        <div className="col-md-6" style={{display: 'flex', justifyContent: 'center'}}>
+          <div>
+            <button onClick={()=> {window.open("https://meta-xyz.live/PdSVuGZ/cocktail-bar", "_blank");}} className="home-buttons">Cocktailbar Metaverse</button>
+          </div>
+        </div>
+        <div className="col-md-3">
+        </div>
+      </div>
+      <div className="row" style={{marginTop: 10}}>
+        <div className="col-md-3">
+        </div>
+        <div className="col-md-6" style={{display: 'flex', justifyContent: 'center'}}>
+          <div>
+            <button  className="home-buttons">Create your Metaverse
+          <p className="menu-sub-text">Coming soon</p></button>
+          </div>
+        </div>
+        <div className="col-md-3">
+        </div>
+      </div>
+      <div className="row" style={{marginTop: 50}}>
+        <div className="col-md-3">
+        </div>
+        <div style={{display: 'none'}}>
+            {canCreateRooms && <CreateRoomButton />}
+        </div>
+        {/* <div className="col-md-6" style={{display: 'flex', justifyContent: 'center'}}>
+          <div className="buttons" style={{textAlign: 'center'}}>
+            <div>
+            {canCreateRooms && <CreateRoomButton />}
+            </div>
+            <div style={{marginTop: 20}}>
+              <a href="/signin" rel="noreferrer noopener">
+                <FormattedMessage id="header.sign-in" defaultMessage="Sign In" />
               </a>
             </div>
-          ) : (
-            <SignInButton mobile />
-          )}
+          </div>
+        </div> */}
+        <div className="col-md-3">
+        </div>
+      </div>
+      {/* <div id="footer-text" style={{width: 100+'%', textAlign: 'center' ,marginTop: 185}}>
+          <h2 style={{color: 'white', fontWeight: 400}}>XYZ 2022</h2>
+      </div> */}
+      {/* <Container>
+        <div className={styles.hero}>
           <div className={styles.logoContainer}>
-            <AppLogo />
+            <img alt={configs.translation("app-name")} src={configs.image("logo")} />
           </div>
           <div className={styles.appInfo}>
             <div className={styles.appDescription}>{configs.translation("app-description")}</div>
+            <iframe width="500px" height="300px" src="https://app.cadgl.com/iframe/d9eaa4c6-56b8-49e9-aa62-a8d59480ca47/" title="description"></iframe>
             {canCreateRooms && <CreateRoomButton />}
             <PWAButton />
           </div>
@@ -104,15 +165,14 @@ export function HomePage() {
             <p>
               <FormattedMessage
                 id="home-page.rooms-blurb"
-                defaultMessage="Share virtual spaces with your friends, co-workers, and communities. When you create a room with Hubs, you’ll have a private virtual meeting space that you can instantly share <b>- no downloads or VR headset necessary.</b>"
-                values={{ b: wrapInBold }}
+                defaultMessage="Share virtual spaces with your friends, co-workers, and communities. When you create a room with Hubs, you’ll have a private virtual meeting space that you can instantly share - no downloads or VR headset necessary."
               />
             </p>
           </Column>
           <Column padding gap="xl" className={styles.card}>
             <img src={configs.image("landing_communicate_thumb")} />
             <h3>
-              <FormattedMessage id="home-page.communicate-title" defaultMessage="Communicate and Collaborate" />
+              <FormattedMessage id="home-page.communicate-title" defaultMessage="Communicate naturally" />
             </h3>
             <p>
               <FormattedMessage
@@ -179,11 +239,14 @@ export function HomePage() {
           </Column>
         </Container>
       )}
-      {isHmc() ? (
-        <Column center>
-          <SocialBar />
+      <Container>
+        <Column padding center grow>
+          <Button lg preset="primary" as="a" href="/link">
+            <FormattedMessage id="home-page.have-code" defaultMessage="Have a room code?" />
+          </Button>
         </Column>
-      ) : null}
+      </Container> */}
+      
     </PageContainer>
   );
 }

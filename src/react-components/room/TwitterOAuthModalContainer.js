@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { TwitterOAuthModal } from "./TwitterOAuthModal";
 import configs from "../../utils/configs";
 
-export function TwitterOAuthModalContainer({ hubChannel, onConnected, onClose, isAdmin }) {
+export function TwitterOAuthModalContainer({ hubChannel, onConnected, onClose }) {
   const popupRef = useRef();
 
   const onConnect = useCallback(
@@ -31,15 +31,9 @@ export function TwitterOAuthModalContainer({ hubChannel, onConnected, onClose, i
         popupRef.current = popup;
       } catch (error) {
         console.error(error);
-        if (error.message === "twitter_api_error" && isAdmin) {
-          console.warn(
-            "Twitter might be misconfigured for Hubs Cloud. Check the docs here: https://hubs.mozilla.com/docs/hubs-cloud-third-party-integrations.html#twitter"
-          );
-        }
-        onClose();
       }
     },
-    [hubChannel, isAdmin, onClose]
+    [hubChannel]
   );
 
   useEffect(
@@ -47,6 +41,7 @@ export function TwitterOAuthModalContainer({ hubChannel, onConnected, onClose, i
       function onMessage({ data }) {
         if (data === "oauth-successful") {
           onConnected();
+          popupRef.current.close();
           popupRef.current = null;
           delete window.doingTwitterOAuth;
           window.removeEventListener("message", onMessage);
@@ -73,6 +68,5 @@ export function TwitterOAuthModalContainer({ hubChannel, onConnected, onClose, i
 TwitterOAuthModalContainer.propTypes = {
   hubChannel: PropTypes.object.isRequired,
   onConnected: PropTypes.func.isRequired,
-  onClose: PropTypes.func,
-  isAdmin: PropTypes.bool
+  onClose: PropTypes.func
 };

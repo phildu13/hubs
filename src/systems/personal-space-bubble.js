@@ -1,11 +1,9 @@
-import { hasComponent } from "bitecs";
-import { IgnoreSpaceBubble } from "../bit-components";
 import { forEachMaterial } from "../utils/material-utils";
 import qsTruthy from "../utils/qs_truthy";
 import traverseFilteredSubtrees from "../utils/traverseFilteredSubtrees";
 
-const invaderPos = new THREE.Vector3();
-const bubblePos = new THREE.Vector3();
+const invaderPos = new AFRAME.THREE.Vector3();
+const bubblePos = new AFRAME.THREE.Vector3();
 const isDebug = qsTruthy("debug");
 const isMobileVR = AFRAME.utils.device.isMobileVR();
 
@@ -82,7 +80,7 @@ AFRAME.registerSystem("personal-space-bubble", {
     this.tickCount++;
   },
 
-  _updateInvaders: (function () {
+  _updateInvaders: (function() {
     const tempInvasionFlags = [];
 
     const setInvaderFlag = (i, invaders, bubble) => {
@@ -104,7 +102,7 @@ AFRAME.registerSystem("personal-space-bubble", {
       }
     };
 
-    return function () {
+    return function() {
       if (!this.data.enabled) return;
       if (this.invaders.length === 0) return;
 
@@ -241,7 +239,7 @@ AFRAME.registerComponent("personal-space-invader", {
     if (this.gltfRootEl && this.gltfRootEl.object3DMap.mesh && !this.alwaysHidden) {
       traverseFilteredSubtrees(this.gltfRootEl.object3DMap.mesh, obj => {
         // Prevents changing the opacity of ui elements
-        if (obj.el && hasComponent(APP.world, IgnoreSpaceBubble, obj.el.eid)) {
+        if (obj.el && obj.el.components.tags && obj.el.components.tags.data.ignoreSpaceBubble) {
           // Skip all objects under this branch by returning false
           return false;
         }
@@ -256,10 +254,7 @@ AFRAME.registerComponent("personal-space-invader", {
           if (!material.userData.originalProps) {
             originalProps = material.userData.originalProps = {
               opacity: material.opacity,
-              transparent: material.transparent,
-              format: material.format,
-              blending: material.blending,
-              side: material.side
+              transparent: material.transparent
             };
           }
 
@@ -268,13 +263,6 @@ AFRAME.registerComponent("personal-space-invader", {
           // not across avatars in the room.
           material.opacity = invading ? this.data.invadingOpacity : originalProps.opacity;
           material.transparent = invading || originalProps.transparent;
-
-          // Note: Since ThreeJS 0.132 the default format for GLTF imported opaque materials is RGBFormat
-          // so we need to switch before enabling transparency.
-          material.format = invading ? THREE.RGBAFormat : originalProps.format;
-          material.blending = invading ? THREE.NormalBlending : originalProps.blending;
-          // This shouldn't be necessary but for some reason transparency doens't work on some models if they are single sided.
-          material.side = invading ? THREE.DoubleSide : originalProps.side;
         });
       });
     } else {

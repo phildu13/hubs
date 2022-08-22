@@ -48,9 +48,10 @@ function useThumbnail(entry, processThumbnailUrl) {
 
   const thumbnailUrl = useMemo(
     () => {
-      return processThumbnailUrl
-        ? processThumbnailUrl(entry, thumbnailWidth, thumbnailHeight)
-        : entry.images.preview.url;
+      // return processThumbnailUrl
+      //   ? processThumbnailUrl(entry, thumbnailWidth, thumbnailHeight)
+      //   : entry.images.preview.url;
+      return entry.images.preview.url; //"https://meta-xyz-hubs-assets.meta-xyz.live/files/ac16a58c-f211-4b3a-a9b8-fed659ada522.jpg";
     },
     [entry, thumbnailWidth, thumbnailHeight, processThumbnailUrl]
   );

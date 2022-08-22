@@ -12,7 +12,7 @@ export default {
 };
 
 export const Verifying = () => (
-  <Page style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover" }}>
+  <Page style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover", color: "white"}}>
     <Center>
       <VerifyModal>
         <VerifyingEmail />
@@ -22,7 +22,7 @@ export const Verifying = () => (
 );
 
 export const Verified = () => (
-  <Page style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover" }}>
+  <Page style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover", color: "white" }}>
     <Center>
       <VerifyModal>
         <EmailVerified origin="hubs.mozilla.com" />
@@ -32,7 +32,7 @@ export const Verified = () => (
 );
 
 export const Error = () => (
-  <Page style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover" }}>
+  <Page style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover", color: "white" }}>
     <Center>
       <VerifyModal>
         <VerificationError />

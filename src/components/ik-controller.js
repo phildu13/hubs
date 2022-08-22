@@ -1,5 +1,3 @@
-import { defineQuery } from "bitecs";
-import { CameraTool } from "../bit-components";
 import { waitForDOMContentLoaded } from "../utils/async-utils";
 const { Vector3, Quaternion, Matrix4, Euler } = THREE;
 
@@ -16,8 +14,6 @@ function quaternionAlmostEquals(epsilon, u, v) {
       Math.abs(-u.w - v.w) < epsilon)
   );
 }
-
-const cameraToolsQuery = defineQuery([CameraTool]);
 
 /**
  * Provides access to the end effectors for IK.
@@ -83,7 +79,7 @@ AFRAME.registerComponent("ik-controller", {
     rightHand: { type: "string", default: "RightHand" },
     chest: { type: "string", default: "Spine" },
     rotationSpeed: { default: 8 },
-    maxLerpAngle: { default: 90 * THREE.MathUtils.DEG2RAD },
+    maxLerpAngle: { default: 90 * THREE.Math.DEG2RAD },
     alwaysUpdate: { type: "boolean", default: false }
   },
 
@@ -164,7 +160,7 @@ AFRAME.registerComponent("ik-controller", {
     this.middleEyePosition.addVectors(this.leftEye.position, this.rightEye.position);
     this.middleEyePosition.divideScalar(2);
     this.middleEyeMatrix.makeTranslation(this.middleEyePosition.x, this.middleEyePosition.y, this.middleEyePosition.z);
-    this.invMiddleEyeToHead = this.middleEyeMatrix.copy(this.middleEyeMatrix).invert();
+    this.invMiddleEyeToHead = this.middleEyeMatrix.getInverse(this.middleEyeMatrix);
 
     this.invHipsToHeadVector
       .addVectors(this.chest.position, this.neck.position)
@@ -246,9 +242,10 @@ AFRAME.registerComponent("ik-controller", {
         if (yDelta > this.data.maxLerpAngle) {
           avatar.quaternion.copy(cameraYQuaternion);
         } else {
-          avatar.quaternion.slerpQuaternions(
+          Quaternion.slerp(
             avatar.quaternion,
             cameraYQuaternion,
+            avatar.quaternion,
             (this.data.rotationSpeed * dt) / 1000
           );
         }
@@ -260,12 +257,12 @@ AFRAME.registerComponent("ik-controller", {
 
       // Take the head orientation computed from the hmd, remove the Y rotation already applied to it by the hips,
       // and apply it to the head
-      invHipsQuaternion.copy(avatar.quaternion).invert();
+      invHipsQuaternion.copy(avatar.quaternion).inverse();
       head.quaternion.setFromRotationMatrix(headTransform).premultiply(invHipsQuaternion);
 
       avatar.updateMatrix();
       rootToChest.multiplyMatrices(avatar.matrix, chest.matrix);
-      invRootToChest.copy(rootToChest).invert();
+      invRootToChest.getInverse(rootToChest);
 
       root.matrixNeedsUpdate = true;
       neck.matrixNeedsUpdate = true;
@@ -283,7 +280,6 @@ AFRAME.registerComponent("ik-controller", {
       // Ensure the avatar is not shown until we've done our first IK step, to prevent seeing mis-oriented/t-pose pose or our own avatar at the wrong place.
       this.ikRoot.el.object3D.visible = true;
       this._hadFirstTick = true;
-      this.el.emit("ik-first-tick");
     }
   },
 
@@ -325,31 +321,30 @@ AFRAME.registerComponent("ik-controller", {
   _updateIsInView: (function() {
     const frustum = new THREE.Frustum();
     const frustumMatrix = new THREE.Matrix4();
-    const tmpPos = new THREE.Vector3();
+    const cameraWorld = new THREE.Vector3();
     const isInViewOfCamera = (screenCamera, pos) => {
       frustumMatrix.multiplyMatrices(screenCamera.projectionMatrix, screenCamera.matrixWorldInverse);
-      frustum.setFromProjectionMatrix(frustumMatrix);
+      frustum.setFromMatrix(frustumMatrix);
       return frustum.containsPoint(pos);
     };
 
     return function() {
-      if (!this.playerCamera || this.data.alwaysUpdate) return;
+      if (!this.playerCamera) return;
 
       const camera = this.ikRoot.camera.object3D;
-      camera.getWorldPosition(tmpPos);
+      camera.getWorldPosition(cameraWorld);
 
       // Check player camera
-      this.isInView = isInViewOfCamera(this.playerCamera, tmpPos);
+      this.isInView = isInViewOfCamera(this.playerCamera, cameraWorld);
 
       if (!this.isInView) {
-        const world = APP.world;
-        // Check camera tools if they are rendering to viewfinder
-        const cameraTools = cameraToolsQuery(world);
-        for (const eid of cameraTools) {
-          const screenObj = world.eid2obj.get(CameraTool.screenRef[eid]);
-          const cameraObj = world.eid2obj.get(CameraTool.cameraRef[eid]);
-          this.isInView = screenObj.visible && isInViewOfCamera(cameraObj, tmpPos);
-          if (this.isInView) break;
+        // Check in-game camera if rendering to viewfinder and owned
+        const cameraTools = this.el.sceneEl.systems["camera-tools"];
+
+        if (cameraTools) {
+          cameraTools.ifMyCameraRenderingViewfinder(cameraTool => {
+            this.isInView = this.isInView || isInViewOfCamera(cameraTool.camera, cameraWorld);
+          });
         }
       }
     };

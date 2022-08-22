@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import {
   ChatSidebar,
@@ -10,14 +10,12 @@ import {
   SpawnMessageButton,
   ChatToolbarButton,
   SendMessageButton,
-  EmojiPickerPopoverButton,
-  ChatLengthWarning
+  EmojiPickerPopoverButton
 } from "./ChatSidebar";
 import { useMaintainScrollPosition } from "../misc/useMaintainScrollPosition";
 import { spawnChatMessage } from "../chat-message";
 import { discordBridgesForPresences } from "../../utils/phoenix-utils";
 import { useIntl } from "react-intl";
-import { MAX_MESSAGE_LENGTH } from "../../utils/chat-message";
 
 const ChatContext = createContext({ messageGroups: [], sendMessage: () => {} });
 
@@ -78,7 +76,6 @@ function updateMessageGroups(messageGroups, newMessage) {
     case "display_name_changed":
     case "scene_changed":
     case "hub_name_changed":
-    case "hub_changed":
     case "log":
       return [
         ...messageGroups,
@@ -160,39 +157,26 @@ ChatContextProvider.propTypes = {
   messageDispatch: PropTypes.object
 };
 
-export function ChatSidebarContainer({ scene, canSpawnMessages, presences, occupantCount, inputEffect, onClose }) {
+export function ChatSidebarContainer({ scene, canSpawnMessages, presences, occupantCount, onClose }) {
   const { messageGroups, sendMessage, setMessagesRead } = useContext(ChatContext);
   const [onScrollList, listRef, scrolledToBottom] = useMaintainScrollPosition(messageGroups);
   const [message, setMessage] = useState("");
-  const typingTimeoutRef = useRef();
   const intl = useIntl();
-  const inputRef = useRef();
 
   const onKeyDown = useCallback(
     e => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        if (e.target.value.length <= MAX_MESSAGE_LENGTH) {
-          sendMessage(e.target.value);
-          setMessage("");
-          // intentionally only doing this on "enter" press and not clicking of send button
-          if (e.target.value.startsWith("/")) {
-            onClose();
-          }
-        }
-      } else if (e.key === "Escape") {
-        onClose();
+        sendMessage(e.target.value);
+        setMessage("");
       }
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => window.APP.hubChannel.endTyping(), 500);
-      window.APP.hubChannel.beginTyping();
     },
-    [sendMessage, setMessage, onClose]
+    [sendMessage, setMessage]
   );
 
   const onSendMessage = useCallback(
     () => {
-      sendMessage(message.substring(0, MAX_MESSAGE_LENGTH));
+      sendMessage(message);
       setMessage("");
     },
     [message, sendMessage, setMessage]
@@ -214,18 +198,6 @@ export function ChatSidebarContainer({ scene, canSpawnMessages, presences, occup
     },
     [scene]
   );
-
-  const onSelectEmoji = useCallback(
-    ({ emoji, pickerRemainedOpen }) => {
-      setMessage(message => message + emoji.native);
-      // If the picker remained open, avoid selecting the input so that the
-      // user can keep picking emojis.
-      if (!pickerRemainedOpen) inputRef.current.select();
-    },
-    [setMessage, inputRef]
-  );
-
-  useEffect(() => inputEffect(inputRef.current), [inputEffect, inputRef]);
 
   useEffect(
     () => {
@@ -278,7 +250,6 @@ export function ChatSidebarContainer({ scene, canSpawnMessages, presences, occup
   }
 
   const isMobile = AFRAME.utils.device.isMobile();
-  const isOverMaxLength = message.length > MAX_MESSAGE_LENGTH;
   return (
     <ChatSidebar onClose={onClose}>
       <ChatMessageList ref={listRef} onScroll={onScrollList}>
@@ -292,30 +263,21 @@ export function ChatSidebarContainer({ scene, canSpawnMessages, presences, occup
       </ChatMessageList>
       <ChatInput
         id="chat-input"
-        ref={inputRef}
         onKeyDown={onKeyDown}
         onChange={e => setMessage(e.target.value)}
         placeholder={placeholder}
         value={message}
-        isOverMaxLength={isOverMaxLength}
-        warning={
-          <>
-            {message.length + 50 > MAX_MESSAGE_LENGTH && (
-              <ChatLengthWarning messageLength={message.length} maxLength={MAX_MESSAGE_LENGTH} />
-            )}
-          </>
-        }
         afterInput={
           <>
-            {!isMobile && <EmojiPickerPopoverButton onSelectEmoji={onSelectEmoji} />}
+            {!isMobile && (
+              <EmojiPickerPopoverButton onSelectEmoji={emoji => setMessage(message => message + emoji.native)} />
+            )}
             {message.length === 0 && canSpawnMessages ? (
               <MessageAttachmentButton onChange={onUploadAttachments} />
             ) : (
-              <SendMessageButton onClick={onSendMessage} disabled={message.length === 0 || isOverMaxLength} />
+              <SendMessageButton onClick={onSendMessage} disabled={message.length === 0} />
             )}
-            {canSpawnMessages && (
-              <SpawnMessageButton disabled={message.length === 0 || isOverMaxLength} onClick={onSpawnMessage} />
-            )}
+            {canSpawnMessages && <SpawnMessageButton disabled={message.length === 0} onClick={onSpawnMessage} />}
           </>
         }
       />
@@ -328,8 +290,7 @@ ChatSidebarContainer.propTypes = {
   presences: PropTypes.object.isRequired,
   occupantCount: PropTypes.number.isRequired,
   scene: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  inputEffect: PropTypes.func.isRequired
+  onClose: PropTypes.func.isRequired
 };
 
 export function ChatToolbarButtonContainer(props) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, forwardRef } from "react";
+import React, { forwardRef } from "react";
 import PropTypes from "prop-types";
 import classNames from "classnames";
 import { Sidebar } from "../sidebar/Sidebar";
@@ -33,42 +33,18 @@ export function SendMessageButton(props) {
   );
 }
 
-// Memoize EmojiPickerPopoverButton since we don't want it re-rendering
-// the EmojiPicker unnecessarily.
-export const EmojiPickerPopoverButton = React.memo(({ onSelectEmoji }) => {
-  // We're using a ref here, since we don't want to re-render anything, but we
-  // do want to know if the Shift key is down when an emoji is selected.
-  const shiftKeyDown = useRef(false);
-
-  useEffect(() => {
-    const onKeyDown = e => {
-      if (e.key === "Shift") shiftKeyDown.current = true;
-    };
-    const onKeyUp = e => {
-      if (e.key === "Shift") shiftKeyDown.current = false;
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, []);
-
+export function EmojiPickerPopoverButton({ onSelectEmoji }) {
   return (
     <Popover
       title=""
-      content={({ closePopover }) => (
+      content={props => (
         <EmojiPicker
           onSelect={emoji => {
-            const keepPickerOpen = shiftKeyDown.current;
-            onSelectEmoji({ emoji, pickerRemainedOpen: keepPickerOpen });
-            // Keep the picker open if the Shift key was held down to allow
-            // for multiple emoji selections.
-            if (!keepPickerOpen) closePopover();
+            onSelectEmoji(emoji);
+            // eslint-disable-next-line react/prop-types
+            props.closePopover();
           }}
+          {...props}
         />
       )}
       placement="top"
@@ -81,7 +57,7 @@ export const EmojiPickerPopoverButton = React.memo(({ onSelectEmoji }) => {
       )}
     </Popover>
   );
-});
+}
 
 EmojiPickerPopoverButton.propTypes = {
   onSelectEmoji: PropTypes.func.isRequired
@@ -98,45 +74,21 @@ export function MessageAttachmentButton(props) {
   );
 }
 
-export function ChatLengthWarning({ messageLength, maxLength }) {
-  return (
-    <p
-      className={classNames(styles.chatInputWarning, {
-        [styles.warningTextColor]: messageLength > maxLength
-      })}
-    >
-      <FormattedMessage id="chat-message-input.warning-max-characters" defaultMessage="Max characters" />
-      {` (${messageLength}/${maxLength})`}
-    </p>
-  );
-}
-
-ChatLengthWarning.propTypes = {
-  messageLength: PropTypes.number,
-  maxLength: PropTypes.number
-};
-
-export const ChatInput = forwardRef(({ warning, isOverMaxLength, ...props }, ref) => {
+export function ChatInput(props) {
   const intl = useIntl();
 
   return (
     <div className={styles.chatInputContainer}>
       <TextAreaInput
-        ref={ref}
-        textInputStyles={styles.chatInputTextAreaStyles}
-        className={classNames({ [styles.warningBorder]: isOverMaxLength })}
         placeholder={intl.formatMessage({ id: "chat-sidebar.input.placeholder", defaultMessage: "Message..." })}
         {...props}
       />
-      {warning}
     </div>
   );
-});
+}
 
 ChatInput.propTypes = {
-  onSpawn: PropTypes.func,
-  warning: PropTypes.node,
-  isOverMaxLength: PropTypes.bool
+  onSpawn: PropTypes.func
 };
 
 const enteredMessages = defineMessages({
@@ -168,9 +120,7 @@ export const LogMessageType = {
   audioNormalizationNaN: "audioNormalizationNaN",
   invalidAudioNormalizationRange: "invalidAudioNormalizationRange",
   audioSuspended: "audioSuspended",
-  audioResumed: "audioResumed",
-  joinFailed: "joinFailed",
-  avatarChanged: "avatarChanged"
+  audioResumed: "audioResumed"
 };
 
 const logMessages = defineMessages({
@@ -250,14 +200,6 @@ const logMessages = defineMessages({
   [LogMessageType.audioResumed]: {
     id: "chat-sidebar.log-message.audio-resumed",
     defaultMessage: "Audio has been resumed."
-  },
-  [LogMessageType.joinFailed]: {
-    id: "chat-sidebar.log-message.join-failed",
-    defaultMessage: "Failed to join room: {message}"
-  },
-  [LogMessageType.avatarChanged]: {
-    id: "chat-sidebar.log-message.avatar-changed",
-    defaultMessage: "Your avatar has been changed."
   }
 });
 
@@ -300,14 +242,6 @@ export function formatSystemMessage(entry, intl) {
           values={{ name: <b>{entry.name}</b>, hubName: <b>{entry.hubName}</b> }}
         />
       );
-    case "hub_changed":
-      return (
-        <FormattedMessage
-          id="chat-sidebar.system-message.hub-change"
-          defaultMessage="You are now in {hubName}"
-          values={{ hubName: <b>{entry.hubName}</b> }}
-        />
-      );
     case "log":
       return intl.formatMessage(logMessages[entry.messageType], entry.props);
     default:
@@ -320,7 +254,6 @@ export function SystemMessage(props) {
 
   return (
     <li className={classNames(styles.messageGroup, styles.systemMessage)}>
-      {props.showLineBreak && <hr />}
       <p className={styles.messageGroupLabel}>
         <i>{formatSystemMessage(props, intl)}</i>
         <span>
@@ -332,8 +265,7 @@ export function SystemMessage(props) {
 }
 
 SystemMessage.propTypes = {
-  timestamp: PropTypes.any,
-  showLineBreak: PropTypes.bool
+  timestamp: PropTypes.any
 };
 
 function MessageBubble({ media, monospace, emoji, children }) {
@@ -419,7 +351,6 @@ export function ChatSidebar({ onClose, children, ...rest }) {
       title={<FormattedMessage id="chat-sidebar.title" defaultMessage="Chat" />}
       beforeTitle={<CloseButton onClick={onClose} />}
       contentClassName={styles.content}
-      disableOverflowScroll
       {...rest}
     >
       {children}

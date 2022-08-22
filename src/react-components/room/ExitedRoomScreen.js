@@ -55,7 +55,7 @@ const messages = defineMessages({
   }
 });
 
-export function ExitedRoomScreen({ reason, showTerms, termsUrl, showSourceLink }) {
+export function ExitedRoomScreen({ reason, showTerms, termsUrl, logoSrc, showSourceLink }) {
   const intl = useIntl();
 
   let subtitle = null;
@@ -66,7 +66,7 @@ export function ExitedRoomScreen({ reason, showTerms, termsUrl, showSourceLink }
       <>
         <b>
           <FormattedMessage
-            id="exited-room-screen.no-longer-available"
+            id="exited-room-screen.no-longer-availible"
             defaultMessage="Sorry, this room is no longer available."
           />
         </b>
@@ -153,12 +153,13 @@ export function ExitedRoomScreen({ reason, showTerms, termsUrl, showSourceLink }
     );
   }
 
-  return <LoadingScreenLayout center={subtitle} />;
+  return <LoadingScreenLayout center={subtitle} logoSrc={logoSrc} />;
 }
 
 ExitedRoomScreen.propTypes = {
   reason: PropTypes.string.isRequired,
   showTerms: PropTypes.bool,
   termsUrl: PropTypes.string,
+  logoSrc: PropTypes.string,
   showSourceLink: PropTypes.bool
 };

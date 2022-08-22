@@ -1,11 +1,14 @@
 import screenfull from "screenfull";
-import { isIOS } from "./is-mobile";
 
 let hasEnteredFullScreenThisSession = false;
 
 function shouldShowFullScreen() {
   // Disable full screen on iOS, since Safari's fullscreen mode does not let you prevent native pinch-to-zoom gestures.
-  return (AFRAME.utils.device.isMobile() || AFRAME.utils.device.isMobileVR()) && !isIOS() && screenfull.enabled;
+  return (
+    (AFRAME.utils.device.isMobile() || AFRAME.utils.device.isMobileVR()) &&
+    !AFRAME.utils.device.isIOS() &&
+    screenfull.enabled
+  );
 }
 
 export function willRequireUserGesture() {
@@ -13,7 +16,7 @@ export function willRequireUserGesture() {
 }
 
 export async function showFullScreenIfAvailable() {
-  if (shouldShowFullScreen() && !screenfull.isFullscreen) {
+  if (shouldShowFullScreen()) {
     hasEnteredFullScreenThisSession = true;
     await screenfull.request();
   }

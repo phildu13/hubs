@@ -3,8 +3,6 @@ import React from "react";
 import { Popover } from "./Popover";
 import { ToolbarButton } from "../input/ToolbarButton";
 import { ReactComponent as InviteIcon } from "../icons/Invite.svg";
-import { ReactComponent as ArrowIcon } from "../icons/Arrow.svg";
-import { ReactComponent as MicrophoneIcon } from "../icons/Microphone.svg";
 import { Column } from "../layout/Column";
 
 export default {
@@ -40,21 +38,13 @@ export default {
 
 const containerStyles = {
   width: "100%",
-  height: "100%",
   position: "relative",
-  padding: "200px",
-  display: "flex",
-  placeContent: "space-around",
-  alignItems: "center"
-};
-
-const audioContainerStyles = {
-  display: "flex"
+  padding: "200px"
 };
 
 export const All = args => (
   <div style={containerStyles}>
-    <Popover title="Invite" content={<Column padding>Content</Column>} {...args}>
+    <Popover title="Invite" content={<Column padding>Content</Column>} initiallyVisible {...args}>
       {({ togglePopover, popoverVisible, triggerRef }) => (
         <ToolbarButton
           ref={triggerRef}
@@ -63,27 +53,6 @@ export const All = args => (
           onClick={togglePopover}
           label="Invite"
         />
-      )}
-    </Popover>
-    <Popover title="Audio" content={<Column padding>Content</Column>} {...args}>
-      {({ togglePopover, popoverVisible, triggerRef }) => (
-        <div style={audioContainerStyles}>
-          <ToolbarButton
-            ref={triggerRef}
-            icon={<ArrowIcon />}
-            preset="basic"
-            type={"left"}
-            onClick={togglePopover}
-            selected={popoverVisible}
-          />
-          <ToolbarButton
-            icon={<MicrophoneIcon />}
-            label="Voice"
-            preset="basic"
-            type={"right"}
-            statusColor={"enabled"}
-          />
-        </div>
       )}
     </Popover>
   </div>

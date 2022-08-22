@@ -1,7 +1,6 @@
 import { disposeTexture } from "../utils/material-utils";
 import { createVideoOrAudioEl } from "../utils/media-utils";
 import { findNode } from "../utils/three-utils";
-import { Layers } from "./layers";
 
 /**
  * @component video-texture-source
@@ -20,8 +19,6 @@ AFRAME.registerComponent("video-texture-source", {
   init() {
     this.camera = findNode(this.el.object3D, n => n.isCamera);
 
-    this.camera.layers.enable(Layers.CAMERA_LAYER_THIRD_PERSON_ONLY);
-
     if (!this.camera) {
       console.warn("video-texture-source added to an entity without a camera");
       return;
@@ -35,7 +32,7 @@ AFRAME.registerComponent("video-texture-source", {
       format: THREE.RGBAFormat,
       minFilter: THREE.LinearFilter,
       magFilter: THREE.NearestFilter,
-      encoding: THREE.sRGBEncoding,
+      encoding: THREE.GammaEncoding,
       depth: false,
       stencil: false
     });
@@ -67,23 +64,16 @@ AFRAME.registerComponent("video-texture-source", {
     const sceneEl = this.el.sceneEl;
     const renderer = this.renderer || sceneEl.renderer;
 
-    const tmpXRFlag = renderer.xr.enabled;
+    const tmpVRFlag = renderer.vr.enabled;
     const tmpOnAfterRender = sceneEl.object3D.onAfterRender;
     delete sceneEl.object3D.onAfterRender;
-    renderer.xr.enabled = false;
-
-    // The entire scene graph matrices should already be updated
-    // in tick(). They don't need to be recomputed again in tock().
-    const tmpAutoUpdate = sceneEl.object3D.autoUpdate;
-    sceneEl.object3D.autoUpdate = false;
+    renderer.vr.enabled = false;
 
     renderer.setRenderTarget(this.renderTarget);
     renderer.render(sceneEl.object3D, this.camera);
     renderer.setRenderTarget(null);
 
-    sceneEl.object3D.autoUpdate = tmpAutoUpdate;
-
-    renderer.xr.enabled = tmpXRFlag;
+    renderer.vr.enabled = tmpVRFlag;
     sceneEl.object3D.onAfterRender = tmpOnAfterRender;
 
     this.lastRenderTime = time;
@@ -116,15 +106,6 @@ AFRAME.registerComponent("video-texture-target", {
   },
 
   init() {
-    // Make video-texture-target objects inivisible before rendering to the frame buffer
-    // Chromium checks for loops when drawing to a framebuffer so if we don't exclude the objects
-    // that are using that rendertarget's texture we get an error. Firefox does not check.
-    // https://chromium.googlesource.com/chromium/src/+/460cac969e2e9ac38a2611be1a32db0361d88bfb/gpu/command_buffer/service/gles2_cmd_decoder.cc#9516
-    this.el.object3D.traverse(o => {
-      o.layers.mask1 = o.layers.mask;
-      o.layers.set(Layers.CAMERA_LAYER_VIDEO_TEXTURE_TARGET);
-    });
-
     const material = this.getMaterial();
 
     if (!material) {
@@ -153,8 +134,9 @@ AFRAME.registerComponent("video-texture-target", {
         const texture = videoTextureSource.renderTarget.texture;
         this.applyTexture(texture);
 
-        // Only update the renderTarget when the screens are in view
-        material.onBeforeRender = () => {
+        // Bit of a hack here to only update the renderTarget when the screens are in view
+        material.map.isVideoTexture = true;
+        material.map.update = () => {
           videoTextureSource.textureNeedsUpdate = true;
         };
       } else {
@@ -170,7 +152,7 @@ AFRAME.registerComponent("video-texture-target", {
 
         const streamClientId = src.substring(7).split("/")[1]; // /clients/<client id>/video is only URL for now
 
-        APP.dialog.getMediaStream(streamClientId, "video").then(stream => {
+        NAF.connection.adapter.getMediaStream(streamClientId, "video").then(stream => {
           if (src !== this.data.src) {
             // Prevent creating and loading video texture if the src changed while we were fetching the video stream.
             return;
@@ -226,13 +208,6 @@ AFRAME.registerComponent("video-texture-target", {
   },
 
   remove() {
-    this.el.object3D.traverse(o => {
-      if (o.layers.mask1) {
-        o.layers.mask = o.layers.mask1;
-        delete o.layers.mask1;
-      }
-    });
-
     // element sources can be shared and are expected to manage their own resources
     if (this.data.src === "el") return;
 

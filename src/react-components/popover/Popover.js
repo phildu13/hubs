@@ -9,32 +9,27 @@ import { useCssBreakpoints } from "react-use-css-breakpoints";
 import classNames from "classnames";
 import { CloseButton } from "../input/CloseButton";
 
-function PopoverArrow({ arrowClass }) {
+function PopoverArrow() {
   return (
     <svg width="25" height="11" viewBox="0 0 25 11" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M1 1L11.1176 9.51209C11.8908 10.1626 13.1092 10.1626 13.8824 9.51209L24 1"
         strokeWidth="2"
-        className={classNames(styles.arrowBg, arrowClass)}
+        className={styles.arrowBg}
       />
       <path
         d="M11.1176 9.51209L1 1H24L13.8824 9.51209C13.1092 10.1626 11.8908 10.1626 11.1176 9.51209Z"
-        className={classNames(styles.arrowBorder, arrowClass)}
+        className={styles.arrowBorder}
       />
-      <path d="M0 1H25" strokeWidth="2" className={classNames(styles.arrowBg, arrowClass)} />
+      <path d="M0 1H25" strokeWidth="2" className={styles.arrowBg} />
     </svg>
   );
 }
-
-PopoverArrow.propTypes = {
-  arrowClass: PropTypes.string
-};
 
 export function Popover({
   content: Content,
   children,
   title,
-  showHeader,
   placement,
   offsetSkidding,
   offsetDistance,
@@ -42,9 +37,7 @@ export function Popover({
   disableFullscreen,
   isVisible,
   onChangeVisible,
-  popoverApiRef,
-  popoverClass,
-  arrowClass
+  popoverApiRef
 }) {
   const [_visible, _setVisible] = useState(initiallyVisible);
   const visible = isVisible === undefined ? _visible : isVisible;
@@ -134,8 +127,6 @@ export function Popover({
     <>
       {children({
         togglePopover,
-        openPopover,
-        closePopover,
         popoverVisible: visible,
         triggerRef: setReferenceElement
       })}
@@ -143,16 +134,14 @@ export function Popover({
         createPortal(
           <div
             ref={setPopperElement}
-            className={classNames(styles.popover, { [styles.fullscreen]: fullscreen }, popoverClass)}
+            className={classNames(styles.popover, { [styles.fullscreen]: fullscreen })}
             style={fullscreen ? undefined : popperStyles}
             {...attributes.popper}
           >
-            {showHeader && (
-              <div className={styles.header}>
-                <CloseButton onClick={closePopover} />
-                <h5>{title}</h5>
-              </div>
-            )}
+            <div className={styles.header}>
+              <CloseButton onClick={closePopover} />
+              <h5>{title}</h5>
+            </div>
             <div className={styles.content}>
               {typeof Content === "function" ? (
                 <Content fullscreen={fullscreen} closePopover={closePopover} />
@@ -162,7 +151,7 @@ export function Popover({
             </div>
             {!fullscreen && (
               <div ref={setArrowElement} className={styles.arrow} style={arrowStyles}>
-                <PopoverArrow arrowClass={arrowClass} />
+                <PopoverArrow />
               </div>
             )}
           </div>,
@@ -179,14 +168,12 @@ Popover.propTypes = {
   children: PropTypes.func.isRequired,
   content: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
   disableFullscreen: PropTypes.bool,
-  popoverApiRef: PropTypes.object,
-  popoverClass: PropTypes.string
+  popoverApiRef: PropTypes.object
 };
 
 Popover.defaultProps = {
   initiallyVisible: false,
   placement: "auto",
   offsetSkidding: 0,
-  offsetDistance: 8,
-  showHeader: true
+  offsetDistance: 8
 };
